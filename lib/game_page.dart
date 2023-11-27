@@ -25,14 +25,6 @@ class _GamePageState extends State<GamePage> {
             logicSteps.moveForward(Move.right),
         const SingleActivator(LogicalKeyboardKey.delete): () =>
             logicSteps.moveBack(),
-        const SingleActivator(LogicalKeyboardKey.digit0): () =>
-            logicSteps.changeSquareIndex(0),
-        const SingleActivator(LogicalKeyboardKey.digit1): () =>
-            logicSteps.changeSquareIndex(1),
-        const SingleActivator(LogicalKeyboardKey.digit2): () =>
-            logicSteps.changeSquareIndex(2),
-        const SingleActivator(LogicalKeyboardKey.digit3): () =>
-            logicSteps.changeSquareIndex(2),
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF915EB8),
@@ -44,61 +36,46 @@ class _GamePageState extends State<GamePage> {
                 final gameState = snapshot.data;
                 return Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (gameState?.isWinner != null)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          gameState?.isWinner ?? false
-                              ? 'You Are a Winner'
-                              : 'You Are a Loser',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 25),
-                        ),
-                      ),
-                    Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: List.generate(
+                    gameState?.game.length ?? 0,
+                    (rowIndex) => Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: List.generate(
-                        gameState?.game.length ?? 0,
-                        (rowIndex) => Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: List.generate(
-                            gameState?.game[rowIndex].length ?? 0,
-                            (columnIndex) {
-                              final isSelected = gameState?.squarePosition.contains(SquarePosition(
+                        gameState?.game[rowIndex].length ?? 0,
+                        (columnIndex) {
+                          final isSelected = gameState?.squarePosition ==
+                              SquarePosition(
                                 rowNumber: rowIndex + 1,
                                 columnNumber: columnIndex + 1,
-                              ))??false;
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Container(
-                                  height: 50,
-                                  width: 50,
-                                  decoration: BoxDecoration(
-                                      border: Border.all(
+                              );
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Container(
+                              height: 50,
+                              width: 50,
+                              decoration: BoxDecoration(
+                                  border: Border.all(
                                     color: isSelected
                                         ? Colors.white
                                         : Colors.transparent,
-                                  ),borderRadius: BorderRadius.circular(4)),
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    map[gameState?.game[rowIndex]
-                                                [columnIndex] ??
-                                            ''] ??
-                                        '',
-                                    textAlign: TextAlign.center,
-                                    style: const TextStyle(
-                                        color: Colors.white, fontSize: 25),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+                                  borderRadius: BorderRadius.circular(4)),
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                map[gameState?.game[rowIndex][columnIndex] ??
+                                        ''] ??
+                                    '',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 25),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
-                  ],
+                  ),
                 );
               }),
         ),

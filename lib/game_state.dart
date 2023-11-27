@@ -1,44 +1,33 @@
 import 'package:equatable/equatable.dart';
 
 class GameState extends Equatable {
-  final List<SquarePosition> squarePosition;
+  final SquarePosition squarePosition;
   final List<List<String>> game;
-  final bool? isWinner;
-  int squareIndex;
 
-   GameState({
+  const GameState({
     required this.squarePosition,
-    this.isWinner,
     required this.game,
-    this.squareIndex = 0,
   });
 
   GameState copyWith({
-    List<SquarePosition>? squarePosition,
-    List<List<String>>? game,
-    bool? isWinner,
-    int? squareIndex,
+    SquarePosition? squarePosition,
   }) =>
       GameState(
         squarePosition: squarePosition ?? this.squarePosition,
-        isWinner: isWinner ?? this.isWinner,
-        game: game ?? this.game,
-        squareIndex: squareIndex ?? this.squareIndex,
+        game: game,
       );
 
   @override
-  List<Object?> get props => ['game'];
+  List<Object?> get props => [squarePosition];
 }
 
 class SquarePosition extends Equatable {
   final int rowNumber;
   final int columnNumber;
-  final int cost;
 
   const SquarePosition({
     required this.rowNumber,
     required this.columnNumber,
-    this.cost=1,
   });
 
   SquarePosition copyWith({
@@ -49,7 +38,6 @@ class SquarePosition extends Equatable {
       SquarePosition(
         rowNumber: rowNumber ?? this.rowNumber,
         columnNumber: columnNumber ?? this.columnNumber,
-        cost: cost ?? this.cost,
       );
 
   @override
