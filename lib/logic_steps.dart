@@ -16,10 +16,10 @@ class LogicSteps {
     GameState goalGameState = currentGameState.copyWith(
         squarePosition: const SquarePosition(
             rowNumber: 3, columnNumber: 7)); // Set your goal state
-    final path = bfs(currentGameState, goalGameState);
+    final path = hillClimbing(currentGameState, goalGameState);
     _moveInPath(path);
 
-    print(retries);
+    log('retries: $retries');
   }
 
   List<GameState> getAvailableGameStates(GameState currentGameState) {
@@ -160,6 +160,48 @@ class LogicSteps {
     return path; // Return the path
   }
 
+  List<GameState> hillClimbing(GameState startState, GameState goalState) {
+    retries = 0;
+    List<GameState> path = [startState]; // Store the current path
+    GameState currentState = startState;
+
+    while (currentState != goalState) {
+      retries++;
+      List<GameState> neighbors = getAvailableGameStates(currentState);
+      GameState bestNeighbor = findBestNeighbor(neighbors, goalState);
+
+      path.add(bestNeighbor);
+      currentState = bestNeighbor;
+    }
+
+    return path;
+  }
+
+  GameState findBestNeighbor(List<GameState> neighbors, GameState goalState) {
+    double bestDistance = double.infinity;
+    late GameState bestNeighbor;
+
+    for (GameState neighbor in neighbors) {
+      double distance = evaluateDistance(neighbor, goalState);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestNeighbor = neighbor;
+      }
+    }
+    log('bestNeighbor: $bestNeighbor distance to Goal:$bestDistance');
+    return bestNeighbor;
+  }
+
+  double evaluateDistance(GameState state, GameState goalState) {
+    return ((state.squarePosition.rowNumber -
+                    goalState.squarePosition.rowNumber)
+                .abs() +
+            (state.squarePosition.columnNumber -
+                    goalState.squarePosition.columnNumber)
+                .abs())
+        .toDouble();
+  }
+
   moveForward(Move move) {
     SquarePosition oldPosition = currentGameState.squarePosition;
     SquarePosition newPosition;
@@ -195,14 +237,14 @@ class LogicSteps {
   }
 
   _moveInPath(List<GameState> path) async {
-    print('path: ${path.length} $path');
+    log('path: ${path.length} $path');
     if (path.isNotEmpty) {
       for (var element in path) {
         await Future.delayed(const Duration(milliseconds: 500));
         _move(element.squarePosition);
       }
     } else {
-      print("No path found");
+      log("No path found");
     }
   }
 
