@@ -82,13 +82,4 @@ class _GamePageState extends State<GamePage> {
       ),
     );
   }
-
-  Map<String, String> map = {
-    "empty": '',
-    "done": '0',
-    "level1": '1',
-    "level2": '2',
-    "level3": '3',
-    "level4": '4',
-  };
 }

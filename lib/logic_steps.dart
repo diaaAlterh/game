@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:developer';
+import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 import 'const.dart';
 import 'game_state.dart';
@@ -16,7 +17,7 @@ class LogicSteps {
     GameState goalGameState = currentGameState.copyWith(
         squarePosition: const SquarePosition(
             rowNumber: 3, columnNumber: 7)); // Set your goal state
-    final path = hillClimbing(currentGameState, goalGameState);
+    final path = dfs(currentGameState, goalGameState);
     _moveInPath(path);
 
     log('retries: $retries');
@@ -98,7 +99,6 @@ class LogicSteps {
 
     queue.add([startState]);
     while (queue.isNotEmpty) {
-      retries++;
       List<GameState> path = queue.removeFirst();
       GameState currentState = path.last;
 
@@ -112,6 +112,7 @@ class LogicSteps {
         List<GameState> successors = getAvailableGameStates(currentState);
 
         for (GameState successor in successors) {
+          retries++;
           if (!visited.contains(successor)) {
             List<GameState> newPath = List.from(path);
             newPath.add(successor);
@@ -130,7 +131,6 @@ class LogicSteps {
     List<GameState> path = [];
 
     bool dfsRecursive(GameState currentState) {
-      retries++;
       if (!visited.contains(currentState)) {
         visited.add(currentState);
         path.add(currentState);
@@ -142,6 +142,7 @@ class LogicSteps {
         List<GameState> successors = getAvailableGameStates(currentState);
 
         for (GameState successor in successors) {
+          retries++;
           if (!visited.contains(successor)) {
             if (dfsRecursive(successor)) {
               return true; // Return true if goal found in the recursive call
@@ -166,7 +167,6 @@ class LogicSteps {
     GameState currentState = startState;
 
     while (currentState != goalState) {
-      retries++;
       List<GameState> neighbors = getAvailableGameStates(currentState);
       GameState bestNeighbor = findBestNeighbor(neighbors, goalState);
 
@@ -177,13 +177,100 @@ class LogicSteps {
     return path;
   }
 
+  List<GameState> aStar(GameState startState, GameState goalState) {
+    retries = 0;
+    PriorityQueue<AStarNode> openSet =
+        PriorityQueue((a, b) => (a.totalCost - b.totalCost).toInt());
+    Set<GameState> closedSet = {};
+
+    openSet.add(AStarNode(
+        startState, null, 0.0, calculateHeuristic(startState, goalState)));
+
+    while (openSet.isNotEmpty) {
+      AStarNode currentNode = openSet.removeFirst();
+
+      if (currentNode.state == goalState) {
+        return reconstructPath(currentNode);
+      }
+
+      closedSet.add(currentNode.state);
+
+      List<GameState> successors = getAvailableGameStates(currentNode.state);
+
+      for (GameState successor in successors) {
+        if (closedSet.contains(successor)) {
+          continue;
+        }
+        int cost = calculateCost(successor);
+        double successorCost = currentNode.cost + 1;
+        double successorHeuristic = calculateHeuristic(successor, goalState);
+
+        AStarNode successorNode = AStarNode(
+            successor, currentNode, successorCost, successorHeuristic);
+
+        if (!openSet.contains(successorNode)) {
+          openSet.add(successorNode);
+        }
+      }
+    }
+
+    return [];
+  }
+
+  List<GameState> uniformCostSearch(GameState startState, GameState goalState) {
+    PriorityQueue<UCSNode> openSet =
+        PriorityQueue((a, b) => (a.cost - b.cost).toInt());
+    Set<GameState> closedSet = {};
+
+    openSet.add(UCSNode(startState, null, 0.0));
+
+    while (openSet.isNotEmpty) {
+      UCSNode currentNode = openSet.removeFirst();
+
+      if (currentNode.state == goalState) {
+        // Reconstruct and return the path if the goal state is reached
+        return reconstructPath(currentNode);
+      }
+
+      closedSet.add(currentNode.state);
+
+      List<GameState> successors = getAvailableGameStates(currentNode.state);
+
+      for (GameState successor in successors) {
+        retries++;
+        if (closedSet.contains(successor)) {
+          continue; // Skip already evaluated nodes
+        }
+        int cost = calculateCost(successor);
+        double successorCost = currentNode.cost + cost;
+
+        UCSNode successorNode = UCSNode(successor, currentNode, successorCost);
+
+        if (!openSet.contains(successorNode)) {
+          openSet.add(successorNode);
+        }
+      }
+    }
+
+    return []; // Return an empty list if no path is found
+  }
+
+  List<GameState> reconstructPath(dynamic node) {
+    List<GameState> path = [];
+    while (node != null) {
+      path.insert(0, node.state);
+      node = node.parent;
+    }
+    return path;
+  }
+
   GameState findBestNeighbor(List<GameState> neighbors, GameState goalState) {
     double bestDistance = double.infinity;
     late GameState bestNeighbor;
 
     for (GameState neighbor in neighbors) {
-      double distance = evaluateDistance(neighbor, goalState);
-      if (distance < bestDistance) {
+      double distance = calculateHeuristic(neighbor, goalState);
+      if (distance <= bestDistance) {
         bestDistance = distance;
         bestNeighbor = neighbor;
       }
@@ -192,14 +279,27 @@ class LogicSteps {
     return bestNeighbor;
   }
 
-  double evaluateDistance(GameState state, GameState goalState) {
-    return ((state.squarePosition.rowNumber -
-                    goalState.squarePosition.rowNumber)
-                .abs() +
-            (state.squarePosition.columnNumber -
-                    goalState.squarePosition.columnNumber)
-                .abs())
-        .toDouble();
+  double calculateHeuristic(GameState state, GameState goalState) {
+    retries++;
+    final manhattanDistance =
+        ((state.squarePosition.rowNumber - goalState.squarePosition.rowNumber)
+                    .abs() +
+                (state.squarePosition.columnNumber -
+                        goalState.squarePosition.columnNumber)
+                    .abs())
+            .toDouble();
+    log('state $state is far $manhattanDistance from Goal $goalState');
+    return manhattanDistance;
+  }
+
+  int calculateCost(GameState state) {
+    String cellLevel = currentGameState.game[state.squarePosition.rowNumber - 1]
+        [state.squarePosition.columnNumber - 1];
+    String? stringLevel = map[cellLevel];
+    int? level = int.tryParse(stringLevel ?? '');
+    log('state $state cost $level');
+
+    return level ?? 1;
   }
 
   moveForward(Move move) {
@@ -226,8 +326,6 @@ class LogicSteps {
   }
 
   _move(SquarePosition newPosition) {
-    log('You have made ${gameStates.length} Moves');
-
     currentGameState = currentGameState.copyWith(
       squarePosition: newPosition,
     );
@@ -276,5 +374,3 @@ LogicSteps logicSteps = LogicSteps(
     game: game,
   ),
 );
-
-enum Move { left, right, up, down }
